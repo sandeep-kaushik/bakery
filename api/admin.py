@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import BakeryItem, Inventory, Ingredients, IngredientsWeight
+from .models import BakeryItem, Inventory, Ingredients, IngredientsWeight, Order
+
 
 # Register your models here.
 
@@ -18,6 +19,12 @@ class InventoryAdmin(admin.ModelAdmin):
 class IngredientsAdmin(admin.ModelAdmin):
     pass
 
+
 @admin.register(IngredientsWeight)
 class IngredientsWeightAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
     pass

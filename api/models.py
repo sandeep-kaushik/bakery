@@ -1,10 +1,14 @@
 from django.db import models
+from django.db.models import Sum, F
 import re
-# from jsonfield.fields import JSONField
+import logging
 
 # Create your models here.
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from accounts.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def update_sku_post_save(sender_model, instance, prefix):
@@ -39,20 +43,16 @@ class BakeryItem(models.Model):
     type = models.IntegerField(default=1, choices=item_type)
     price = models.FloatField(default=0.0)
 
-
-
     @property
-    def get_ingredients_ratio(self):
-        # for item in self.ingredients_ratio:
-        #
-        # self.
-        return 1
+    def get_ingredients_total_weight(self):
+        ingredients_total_weight = BakeryItem.objects.annotate(
+            ingredents_total_weight=Sum("ingredients_ratio__weight")).get(id=self.id).ingredents_total_weight
+        return ingredients_total_weight
 
 
 @receiver(post_save, sender=BakeryItem)
 def update_bakery_item_sku(sender, instance, **kwargs):
     update_sku_post_save(sender, instance, prefix="SKU")
-
 
 
 class IngredientsWeight(models.Model):
@@ -62,31 +62,49 @@ class IngredientsWeight(models.Model):
 
 
 class Inventory(models.Model):
-    bakery_item = models.ForeignKey(BakeryItem, on_delete=models.CASCADE, related_name='bakery_item_inventory')
-    manufacturing_date = models.DateField()
-    expiry_date = models.DateField()
+    bakery_item = models.OneToOneField(BakeryItem, on_delete=models.CASCADE, related_name='bakery_item_inventory')
     quantity = models.IntegerField(default=0)
 
 
-# class Order(models.Model):
-#     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, blank=True, null=True)
-#     login_id = models.ForeignKey(Customer_Login, on_delete=models.SET_NULL, blank=True, null=True)
-#     no_of_products = models.PositiveSmallIntegerField()
-#     address = models.ForeignKey(Address, on_delete=models.SET_NULL, blank=True, null=True)
-#     order_price = models.PositiveIntegerField(null=True, blank=True)
-#     rent_price = models.PositiveIntegerField(null=True, blank=True)
-#     tax_price = models.PositiveIntegerField(null=True, blank=True)
-#     discount_price = models.PositiveIntegerField(null=True, blank=True)
-#     security_deposit = models.PositiveIntegerField(null=True, blank=True)
-#     payment_request_id = models.CharField(max_length=50, null=True, blank=True)
-#     payment_mode = models.CharField(max_length=8, null=True, blank=True)
-#     payment_status = models.CharField(max_length=5, null=True, blank=True)
-#     return_delivery = models.CharField(max_length=5, null=True, blank=True)
-#     timestamp = models.DateTimeField(auto_now_add=True)
-#     guidelines = models.TextField(default='')
-#     timeslot = models.CharField(max_length=50, default='')
-#     discount_code = models.CharField(max_length=20, default='')
-#     cancel = models.BooleanField(default=False)
-#
-#     def __unicode__(self):
-#         return str(self.id) + str(self.customer) + " " + str(self.timestamp)
+class Order(models.Model):
+    pay_status = ((1, "Success"), (2, 'Failed'), (3, 'Pending'))
+
+    customer = models.ForeignKey(User, on_delete=models.CASCADE)
+    no_of_bakery_item = models.PositiveSmallIntegerField()
+    order_price = models.PositiveIntegerField(null=True, blank=True)
+    discount_price = models.PositiveIntegerField(null=True, blank=True)
+    payment_mode = models.CharField(max_length=8, null=True, blank=True)
+    payment_status = models.CharField(max_length=5, null=True, blank=True, choices=pay_status)
+    return_delivery = models.CharField(max_length=5, null=True, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    guidelines = models.TextField(default='')
+    cancel = models.BooleanField(default=False)
+
+    def check_order(self):
+        pass
+
+    def place_order(self):
+        pass
+
+    def cancel_order(self):
+        pass
+
+
+class OrderItems(models.Model):
+    bakery_item = models.ForeignKey(BakeryItem, on_delete=models.CASCADE, related_name='bakery_item_order')
+    quantity = models.IntegerField(default=0)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="order_items")
+
+    def update_inventory(self):
+        try:
+            inventory_obj = self.bakery_item.bakery_item_inventory
+            inventory_obj.quantity -= self.quantity
+            inventory_obj.save()
+        except Exception as e:
+            logger.error(
+                "Unable to update inventory with order item id  %s' with error %s" %(self.id, e))
+
+
+@receiver(post_save, sender=OrderItems)
+def update_bakery_item_sku(sender, instance, **kwargs):
+    instance.update_inventory()
