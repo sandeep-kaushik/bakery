@@ -1,39 +1,46 @@
-from django.forms import model_to_dict
-from rest_framework.viewsets import ModelViewSet
-# from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated
-
+from rest_framework import generics, mixins
+from api.permissions import Isauthenticatedstaff
 from api.serializers import IngredientsSerializer, BakeryItemSerializer, InventoryPostSerializer, \
     InventoryGetSerializer, OrderSerializer
-# from base.permissions import Isauthenticatedstaff
 from api.models import Inventory, Ingredients, BakeryItem, IngredientsWeight, Order
-from django.utils.timezone import datetime
-from rest_framework.response import Response
 
 
 class IngredientsViewset(ModelViewSet):
     serializer_class = IngredientsSerializer
-    # filter_backends = [DjangoFilterBackend]
-    # filterset_class = CuboidFilter
-
     queryset = Ingredients.objects.all()
 
-    # def get_permissions(self):
-    #     if self.request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
-    #         self.permission_classes = [Isauthenticatedstaff]
-    #     else:
-    #         self.permission_classes = [IsAuthenticated]
-    #     return super(CuboidViewset, self).get_permissions()
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+            self.permission_classes = [Isauthenticatedstaff]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super(IngredientsViewset, self).get_permissions()
 
 
 class BakeryItemViewset(ModelViewSet):
     serializer_class = BakeryItemSerializer
     queryset = BakeryItem.objects.all()
 
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+            self.permission_classes = [Isauthenticatedstaff]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super(BakeryItemViewset, self).get_permissions()
+
 
 class InventoryViewset(ModelViewSet):
     serializer_class = InventoryPostSerializer
     queryset = Inventory.objects.all()
+
+    def get_permissions(self):
+        if self.request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+            self.permission_classes = [Isauthenticatedstaff]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super(InventoryViewset, self).get_permissions()
 
     def list(self, request, *args, **kwargs):
         depth = self.request.query_params.get('depth', "")
@@ -49,6 +56,20 @@ class InventoryViewset(ModelViewSet):
 class OrderViewset(ModelViewSet):
     serializer_class = OrderSerializer
     queryset = Order.objects.all()
-    
-    # def get_queryset(self):
-    #     super(OrderViewset, self).get_queryset()
+
+    def get_permissions(self):
+        if self.request.method in ['PUT', 'DELETE', 'PATCH']:
+            self.permission_classes = [Isauthenticatedstaff]
+        else:
+            self.permission_classes = [IsAuthenticated]
+        return super(OrderViewset, self).get_permissions()
+
+
+class MyOrderViewset(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.all()
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        self.queryset = self.get_queryset().filter(customer = request.user)
+        super(MyOrderViewset, self).list(request, *args, **kwargs)

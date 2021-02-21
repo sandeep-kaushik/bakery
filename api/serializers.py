@@ -115,5 +115,4 @@ class OrderSerializer(serializers.ModelSerializer):
             if inventory_obj.quantity - item['quantity'] < 0:
                 raise ValidationError("stock for bakery_item {} is not available with requested quantity".format(
                     item['bakery_item'].id))
-
         return value

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import BakeryItem, Inventory, Ingredients, IngredientsWeight, Order
+from api.models import BakeryItem, Inventory, Ingredients, IngredientsWeight, Order
 
 
 # Register your models here.
