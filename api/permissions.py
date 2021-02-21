@@ -9,6 +9,6 @@ class Isauthenticatedstaff(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
 
         if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
-            return request.user.role.id in [1, 3]
+            return bool(set([role.id for role in request.user.roles.all()]).intersection([1, 3]))
         else:
             return False
