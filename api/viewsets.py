@@ -67,9 +67,9 @@ class OrderViewset(ModelViewSet):
 
 class MyOrderViewset(mixins.RetrieveModelMixin, mixins.ListModelMixin, GenericViewSet):
     serializer_class = OrderSerializer
-    queryset = Order.objects.all()
+    queryset = Order.objects.all().prefetch_related('order_items')
     permission_classes = [IsAuthenticated]
 
     def list(self, request, *args, **kwargs):
         self.queryset = self.get_queryset().filter(customer = request.user)
-        super(MyOrderViewset, self).list(request, *args, **kwargs)
+        return super(MyOrderViewset, self).list(request, *args, **kwargs)

@@ -3,6 +3,7 @@ from django.forms import model_to_dict
 from rest_framework import serializers
 import logging
 from django.core.exceptions import ValidationError
+from django.core.exceptions import ObjectDoesNotExist
 
 from api.models import Ingredients, Inventory, BakeryItem, IngredientsWeight, Order, OrderItems
 
@@ -74,23 +75,24 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class OrderSerializer(serializers.ModelSerializer):
-    bakery_items = OrderItemSerializer(many=True, required=False)
+    order_items = OrderItemSerializer(many=True)
 
     class Meta:
+
         model = Order
-        fields = ('customer', 'bakery_items', 'payment_mode', 'guidelines')
+        fields = ('id', 'customer', 'order_items', "order_price",'payment_mode', 'guidelines')
 
     def create(self, validated_data):
-        bakery_items = validated_data.pop('bakery_items')
-        no_of_bakery_item = len(bakery_items)
+        order_items = validated_data.pop('order_items')
+        no_of_bakery_item = len(order_items)
         validated_data['no_of_bakery_item'] = no_of_bakery_item
 
         try:
             validated_data['order_price'] = 0
             order = Order.objects.create(**validated_data)
 
-            if bakery_items:
-                for item in bakery_items:
+            if order_items:
+                for item in order_items:
                     try:
                         validated_data['order_price']+= item['bakery_item'].price
 
@@ -105,14 +107,18 @@ class OrderSerializer(serializers.ModelSerializer):
         except Exception as e:
             logger.error(
                 "Unable to create Order in order Create api with Order data provided as %s \
-               and bakery_items %s and the exception occured is ::: %s" %
-                (validated_data, bakery_items, e))
+               and order_items %s and the exception occured is ::: %s" %
+                (validated_data, order_items, e))
 
-    def validate_bakery_items(self, value):
+    def validate_order_items(self, value):
 
         for item in value:
-            inventory_obj = item['bakery_item'].bakery_item_inventory
-            if inventory_obj.quantity - item['quantity'] < 0:
-                raise ValidationError("stock for bakery_item {} is not available with requested quantity".format(
-                    item['bakery_item'].id))
+            try:
+                inventory_obj = item['bakery_item'].bakery_item_inventory
+
+                if inventory_obj.quantity - item['quantity'] < 0:
+                    raise ValidationError("stock for bakery_item {} is not available with requested quantity".format(
+                        item['bakery_item'].id))
+            except ObjectDoesNotExist as e:
+                raise serializers.ValidationError("bakery_item_inventory does not exist error is :::{}".format(e))
         return value
