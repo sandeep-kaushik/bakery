@@ -31,8 +31,6 @@ class RegistrationSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        import ipdb
-        ipdb.set_trace()
         roles = validated_data.pop('roles', [])
         user = User.objects.create(
             username=validated_data['username'],
