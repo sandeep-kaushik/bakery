@@ -21,7 +21,7 @@ class IngredientsViewset(ModelViewSet):
 
 class BakeryItemViewset(ModelViewSet):
     serializer_class = BakeryItemSerializer
-    queryset = BakeryItem.objects.all()
+    queryset = BakeryItem.objects.all().prefetch_related('ingredients_ratio')
 
     def get_permissions(self):
         if self.request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
@@ -55,7 +55,7 @@ class InventoryViewset(ModelViewSet):
 
 class OrderViewset(ModelViewSet):
     serializer_class = OrderSerializer
-    queryset = Order.objects.all()
+    queryset = Order.objects.all().prefetch_related('order_items')
 
     def get_permissions(self):
         if self.request.method in ['PUT', 'DELETE', 'PATCH']:
