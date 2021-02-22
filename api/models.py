@@ -45,6 +45,10 @@ class BakeryItem(models.Model):
 
     @property
     def get_ingredients_total_weight(self):
+        """
+            This function return the total weight of ingredients in an BakeryItem
+        """
+
         ingredients_total_weight = BakeryItem.objects.annotate(
             ingredents_total_weight=Sum("ingredients_ratio__weight")).get(id=self.id).ingredents_total_weight
         return ingredients_total_weight
@@ -96,6 +100,12 @@ class OrderItems(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="order_items")
 
     def update_inventory(self):
+
+        """
+        Update inventory after creating an order and is corresponding order items
+        :return: None
+        """
+
         try:
             inventory_obj = self.bakery_item.bakery_item_inventory
             inventory_obj.quantity -= self.quantity
@@ -106,5 +116,13 @@ class OrderItems(models.Model):
 
 
 @receiver(post_save, sender=OrderItems)
-def update_bakery_item_sku(sender, instance, **kwargs):
+def update_inventory_signal(sender, instance, **kwargs):
+    """
+    Post save signal for OrderItems to update inventory after saving the OrderItems
+
+    :param sender:
+    :param instance:
+    :param kwargs:
+    :return: None
+    """
     instance.update_inventory()

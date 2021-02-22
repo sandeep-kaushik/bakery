@@ -31,6 +31,13 @@ class BakeryItemSerializer(serializers.ModelSerializer):
                   'Item_count_in_package', 'measurement_type', 'weight', 'type', 'price')
 
     def to_representation(self, instance):
+        """
+        to make changes in the output json for this api it also includes logic for the adding Each ingredients percentage
+        in an bakery item.
+
+        :param instance:
+        :return: Dict
+        """
         returned_json = super(
             BakeryItemSerializer, self).to_representation(instance)
         try:
@@ -44,6 +51,12 @@ class BakeryItemSerializer(serializers.ModelSerializer):
         return returned_json
 
     def create(self, validated_data):
+        """
+        creates BakeryItem
+
+        :param validated_data:
+        :return: BakeryItem obj.
+        """
         ingredients_weight_list = validated_data.pop("ingredients_weight_list", None)
         bakery_item_obj = BakeryItem(**validated_data)
         bakery_item_obj.save()
@@ -83,6 +96,12 @@ class OrderSerializer(serializers.ModelSerializer):
         fields = ('id', 'customer', 'order_items', "order_price",'payment_mode', 'guidelines')
 
     def create(self, validated_data):
+        """
+        creates Order objects , add total prices to the orders.
+
+        :param validated_data:
+        :return:Order Object
+        """
         order_items = validated_data.pop('order_items')
         no_of_bakery_item = len(order_items)
         validated_data['no_of_bakery_item'] = no_of_bakery_item
@@ -111,6 +130,12 @@ class OrderSerializer(serializers.ModelSerializer):
                 (validated_data, order_items, e))
 
     def validate_order_items(self, value):
+        """
+        validate from inventory availability for all order items before creating the ORDER object
+
+        :param value:
+        :return: Dict
+        """
 
         for item in value:
             try:
